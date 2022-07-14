@@ -1,70 +1,129 @@
-var express = require('express')
-var app = express()
-app.use(express.static('public'))
-const port = process.env.PORT || 3000
-var http = require('http').createServer(app);
-var io = require('socket.io')(http);
+var game_logic = require("./game_logic.js");
+var express = require("express");
+var app = express();
+app.use(express.static("public"));
+const port = process.env.PORT || 3000;
+var http = require("http").createServer(app);
+var io = require("socket.io")(http);
 
-http.listen(port)
+http.listen(port);
 
-app.get('/', function(req, res){
-  res.sendFile(__dirname + '/index.html');
+/*routing*/
+app.use("/css", express.static(__dirname + "/css"));
+app.use("/js", express.static(__dirname + "/js"));
+app.use("/img", express.static(__dirname + "/img"));
+
+app.get("/", function (req, res) {
+  res.writeHead(302, {
+    Location: "/" + generateHash(6),
+  });
+  res.end();
 });
 
+app.get("/:room([A-Za-z0-9]{6})", function (req, res) {
+  res.sendFile(__dirname + "/index.html");
+});
 
-var players = {},
-  unmatched;
+function generateHash(length) {
+  var haystack =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+    output = "";
+  for (var i = 0; i < length; i++) {
+    output += haystack.charAt(Math.floor(Math.random() * haystack.length));
+  }
+  return output;
+}
 
-
+var rooms = [];
+// io.sockets.on('connection', function(socket){
 io.sockets.on("connection", function (socket) {
-    console.log("socket connected")
-  socket.emit('connect',{msg:"hello"})
-  joinGame(socket);
-
-  if (getOpponent(socket)) {
-    socket.emit("game.begin", {
-      symbol: players[socket.id].symbol,
-    });
-    getOpponent(socket).emit("game.begin", {
-      symbol: players[getOpponent(socket).id].symbol,
-    });
-  }
-
-  socket.on("make.move", function (data) {
-    if (!getOpponent(socket)) {
-      return;
+  socket.on("join", function (data) {
+    if (data.room in game_logic.games) {
+      var game = game_logic.games[data.room];
+      if (typeof game.player2 != "undefined") {
+        return;
+      }
+      console.log("player 2 logged on");
+      socket.join(data.room);
+      rooms.push(data.room);
+      socket.room = data.room;
+      socket.pid = 2;
+      socket.hash = generateHash(8);
+      game.player2 = socket;
+      socket.opponent = game.player1;
+      game.player1.opponent = socket;
+      socket.emit("assign", { pid: socket.pid, hash: socket.hash });
+      game.turn = 1;
+      socket.broadcast.to(data.room).emit("start");
+    } else {
+      console.log("player 1 is here");
+      if (rooms.indexOf(data.room) <= 0) socket.join(data.room);
+      socket.room = data.room;
+      socket.pid = 1;
+      socket.hash = generateHash(8);
+      game_logic.games[data.room] = {
+        player1: socket,
+        moves: 0,
+        board: [
+          [0, 0, 0],
+          [0, 0, 0],
+          [0, 0, 0],
+        ],
+      };
+      rooms.push(data.room);
+      socket.emit("assign", { pid: socket.pid, hash: socket.hash });
     }
-    socket.emit("move.made", data);
-    getOpponent(socket).emit("move.made", data);
-  });
 
-  socket.on("disconnect", function () {
-    if (getOpponent(socket)) {
-      getOpponent(socket).emit("opponent.left");
-    }
+    socket.on("makeMove", function (data) {
+      var game = game_logic.games[socket.room];
+      if ((data.hash = socket.hash && game.turn == socket.pid)) {
+        var move_made = game_logic.make_move(
+          socket.room,
+          data.col,
+          data.row,
+          socket.pid
+        );
+        if (move_made) {
+          game.moves = parseInt(game.moves) + 1;
+          socket.broadcast.to(socket.room).emit("move_made", {
+            pid: socket.pid,
+            col: data.col,
+            row: data.row,
+          });
+          game.turn = socket.opponent.pid;
+          var winner = game_logic.check_for_win(game.board);
+          console.log(winner);
+          console.log(game.board);
+          if (winner) {
+            io.to(socket.room).emit("winner", { winner: winner });
+            // io.to(socket.room).emit("stop");
+
+            // socket.send('winner', {winner: winner});
+          }
+          if (game.moves >= 9) {
+            io.to(socket.room).emit("draw");
+            // socket.send('draw');
+          }
+        }
+      }
+    });
+
+    socket.on("my_move", function (data) {
+      socket.broadcast
+        .to(socket.room)
+        .emit("opponent_move", { col: data.col, row: data.row });
+    });
+
+    socket.on("disconnect", function () {
+      if (socket.room in game_logic.games) {
+        delete game_logic.games[socket.room];
+        io.to(socket.room).emit("stop");
+        // socket.send('stop');
+        console.log("room closed: " + socket.room);
+      } else {
+        console.log("disconnect called but nothing happend");
+      }
+      // implement remove room
+    });
   });
 });
-
-function joinGame(socket) {
-  players[socket.id] = {
-    opponent: unmatched,
-
-    symbol: "X",
-    // The socket that is associated with this player
-    socket: socket,
-  };
-  if (unmatched) {
-    players[socket.id].symbol = "O";
-    players[unmatched].opponent = socket.id;
-    unmatched = null;
-  } else {
-    unmatched = socket.id;
-  }
-}
-
-function getOpponent(socket) {
-  if (!players[socket.id].opponent) {
-    return;
-  }
-  return players[players[socket.id].opponent].socket;
-}
