@@ -23,33 +23,27 @@
   </head>
   <body>
     <% if(success && success.length) {%>
-      <div
-        class="alert alert-success alert-dismissible fade show"
-        role="alert"
-      >
-        <p><%= success %></p>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="alert"
-          aria-label="Close"
-        ></button>
-      </div>
-      <% } %> <% if(error && error.length) {%>
-      <div
-        class="alert alert-danger alert-dismissible fade show"
-        role="alert"
-      >
-        <p><%= error %></p>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="alert"
-          aria-label="Close"
-        ></button>
-      </div>
-      <% } %>
-    
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      <p><%= success %></p>
+      <button
+        type="button"
+        class="btn-close"
+        data-bs-dismiss="alert"
+        aria-label="Close"
+      ></button>
+    </div>
+    <% } %> <% if(error && error.length) {%>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <p><%= error %></p>
+      <button
+        type="button"
+        class="btn-close"
+        data-bs-dismiss="alert"
+        aria-label="Close"
+      ></button>
+    </div>
+    <% } %>
+
     <section id="main_section">
       <div class="container-fluid" id="main_container-1">
         <div class="grid-container">
@@ -64,7 +58,11 @@
               <div><a href="/login">Login</a></div>
               <div><a href="/register">Sign Up</a></div>
               <% } else { %>
-              <div style="color: white">Hi!, <%= currentUser.username %></div>
+              <div style="color: white">
+                <a href="/users/<%=currentUser._id%>">
+                  >Hi!, <%= currentUser.username %></a
+                >
+              </div>
               <div><a href="/logout">Logout</a></div>
               <% } %>
             </div>

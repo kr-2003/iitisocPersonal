@@ -70,6 +70,48 @@ app.get(
 );
 
 app.get(
+  "/users/:id",
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    console.log(id);
+    const user = await User.findById(id).populate({ path: "followers" });
+    console.log(id);
+    console.log(user);
+    if (!user) {
+      req.flash("error", "Cannot find the user!!");
+      return res.redirect("/");
+    }
+    console.log(user);
+    console.log(req.user);
+    res.render("profile.ejs", { user });
+  })
+);
+
+app.get(
+  "/users/:id/follow",
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const user = await User.findById(id);
+    if (req.user && user !== req.user.username) {
+      user.followers.push(req.user);
+    }
+    await user.save();
+    req.flash("success", "Added a follower!!!");
+    res.redirect(`/users/${id}`);
+  })
+);
+
+app.get(
+  "/users/:id/:followerId/unfollow",
+  catchAsync(async (req, res) => {
+    const { id, followerId } = req.params;
+    await User.findByIdAndUpdate(followerId, { $pull: { followers: id } });
+    req.flash("success", "Unfollowed!");
+    res.redirect(`/users/${followerId}`);
+  })
+);
+
+app.get(
   "/register",
   catchAsync(async (req, res) => {
     res.render("register.ejs");
