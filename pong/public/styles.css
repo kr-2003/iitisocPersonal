@@ -1,0 +1,39 @@
+*{
+    box-sizing: border-box;
+}
+
+body{
+    margin: 0;
+    background-color: rgb(88, 79, 79);
+}
+
+.paddle{
+    --position: 45;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    top: calc(var(--position)*1vh);
+    height: 10vh;
+    width: 10px;
+    background-color: white;
+}
+
+.paddle.left{
+    left: 0.1vw;
+}
+.paddle.right{
+    right: 0.1vw;
+}
+
+.ball{
+    --x: 50;
+    --y: 50;
+    background-color: white;
+    height: 2.5vh;
+    width: 2.5vh;
+    border-radius: 100%;
+    position: absolute;
+    left: calc(var(--x)*1vw);
+    top: calc(var(--y)*1vh);
+    transform: translate(-50%, -50%);
+}
