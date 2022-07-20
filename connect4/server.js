@@ -1,42 +1,42 @@
+var game_logic = require("./game_logic.js");
+var express = require("express");
+var app = express();
+app.use(express.static("public"));
+const port = process.env.PORT || 3000;
+var http = require("http").createServer(app);
+var io = require("socket.io")(http);
 
-var game_logic = require("./game_logic");
-var express = require('express')
-var app = express()
-app.use(express.static('public'))
-const port = process.env.PORT || 3000
-var http = require('http').createServer(app);
-var io = require('socket.io')(http);
-
-http.listen(port)
+http.listen(port);
 
 /*routing*/
-app.use("/css", express.static(__dirname + '/css'));
-app.use("/js", express.static(__dirname + '/js'));
-app.use("/img", express.static(__dirname + '/img'));
+app.use("/css", express.static(__dirname + "/css"));
+app.use("/js", express.static(__dirname + "/js"));
+app.use("/img", express.static(__dirname + "/img"));
 
-app.get('/', function(req, res){
-	res.writeHead(302, {
-		'Location': '/'+generateHash(6)
-	});
-	res.end();
-})
+app.get("/", function (req, res) {
+  res.writeHead(302, {
+    Location: "/" + generateHash(6),
+  });
+  res.end();
+});
 
-app.get('/:room([A-Za-z0-9]{6})', function(req, res) {
-	res.sendFile(__dirname+'/index.html');
+app.get("/:room([A-Za-z0-9]{6})", function (req, res) {
+  res.sendFile(__dirname + "/index.html");
 });
 
 function generateHash(length) {
-	var haystack = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-		output = '';
-	for(var i = 0; i < length; i++) {
-		output += haystack.charAt(Math.floor(Math.random() * haystack.length));
-	}
-	return output;
-};
+  var haystack =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+    output = "";
+  for (var i = 0; i < length; i++) {
+    output += haystack.charAt(Math.floor(Math.random() * haystack.length));
+  }
+  return output;
+}
 
 var rooms = [];
-// io.sockets.on('connection', function(socket){
 io.sockets.on('connection', function(socket){
+// wss.on('connection', function(socket){
 
 	socket.on('join', function(data){
 		if(data.room in game_logic.games){
@@ -87,7 +87,6 @@ io.sockets.on('connection', function(socket){
 					var winner = game_logic.check_for_win(game.board);
 					if(winner){
 						io.to(socket.room).emit('winner', {winner: winner});
-						
 						// socket.send('winner', {winner: winner});
 					}
 					if(game.moves >= 42){

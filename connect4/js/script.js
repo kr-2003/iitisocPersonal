@@ -1,12 +1,11 @@
-var socket = io();
-
 $(function () {
-  (player = {}),
-    (yc = $(".your_color")),
-    (oc = $(".opponent_color")),
-    (your_turn = false),
-    (url = window.location.href.split("/")),
-    (room = url[url.length - 1]);
+  var socket = io.connect(),
+    player = {},
+    yc = $(".your_color"),
+    oc = $(".opponent_color"),
+    your_turn = false,
+    url = window.location.href.split("/"),
+    room = url[url.length - 1];
 
   var text = {
     yt: "Your turn",
@@ -144,7 +143,8 @@ $(function () {
     new_coin.animate(
       {
         top: 100 * (4 - current_in_col + 1),
-      }
+      },
+      400
     );
   }
 
