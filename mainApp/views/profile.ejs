@@ -111,34 +111,27 @@
             </div>
           </div>
         </div>
-        <div class="row">
-          <div class="col-md-12">
-            <div class="card mb-4 mb-md-0">
-              <div class="card-body">
+        <div style= "min-height: 150px; overflow: hidden;" class="row">
+          <div style= "min-height: 150px; overflow: hidden;" class="col-md-12">
+            <div style= "min-height: 150px; overflow: hidden;" class="card mb-4 mb-md-0">
+
                 <h3 class="mb-4" >
                   History
                 </h3>
-                <div style="height: 20px; margin-bottom: 20px;">
-                  <div class="badge bg-primary text-wrap" style="width: 6rem;">
-                    TicTacToe
+                <% for(let game of user.history){ %>
+                  <div style="min-height: 100px; margin-bottom: 20px; overflow: hidden;">
+                      <h4><%= game.game %></h4>
+
+                    <% if(game.status==="won") { %>
+                      <div style="color: green;">Winner: <%=game.winner%></div>
+                      <div style="color: red">Loser: <%=game.loser%> </div>
+                    <% } else { %>
+                      <div style="color: grey;"><%=game.winner%></div>
+                      <div style="color: grey"><%=game.loser%> </div>
+                      <% } %>
                   </div>
-                </div>
-                <div style="height: 20px; margin-bottom: 20px;">
-                  <div class="badge bg-primary text-wrap" style="width: 6rem;">
-                    TicTacToe
-                  </div>
-                </div>
-                <div style="height: 20px; margin-bottom: 20px;">
-                  <div class="badge bg-primary text-wrap" style="width: 6rem;">
-                    TicTacToe
-                  </div>
-                </div>
-                <div style="height: 20px; margin-bottom: 20px;">
-                  <div class="badge bg-primary text-wrap" style="width: 6rem;">
-                    TicTacToe
-                  </div>
-                </div>
-              </div>
+                <% }%>
+
             </div>
           </div>
 

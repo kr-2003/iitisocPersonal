@@ -14,6 +14,24 @@ const userSchema = new Schema({
       ref: "User",
     },
   ],
+  history: [
+    {
+      type: {
+        game: {
+          type: String,
+        },
+        status: {
+          type: String,
+        },
+        winner: {
+          type: String,
+        },
+        loser: {
+          type: String,
+        },
+      },
+    },
+  ],
 });
 
 userSchema.plugin(passportLocalMongoose);
