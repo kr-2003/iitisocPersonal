@@ -1,0 +1,90 @@
+
+.baap{
+  position: relative;
+  top: 100px;
+  padding-top: 60px;
+}
+
+.inputs{
+  text-align: center;
+  margin: 10px;
+}
+.whitebox{
+  margin: auto;
+  width:50%;
+}
+
+.auth{
+  font-size: 25px;
+  text-align: left;
+}
+
+input{
+  background-color: #848790;
+  opacity: 0.7;
+  border-color: #7A0BC0;
+  border-width: 3px;
+}
+
+.button{
+  display: inline-block;
+  width: 280px;
+  margin-top: 20px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  vertical-align: middle;
+  user-select: none;
+  background-color: transparent;
+  border: 3px solid #FBC217;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+.button:hover{
+  background-color: #FBC217 ;
+  color: black;
+}
+
+.chotabaap{
+  text-align: left;
+}
+
+.whitebg{
+  opacity: 0.2;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+.bada{
+  position:relative;
+  bottom:440px;
+
+}
+.bada-register{
+  position:relative;
+  bottom:525px;
+
+}
+
+.head{
+  margin: 30px;
+}
+.border-login{
+  border: 7px solid #7A0BC0;
+  width:100%;
+}
+
+.input-text{
+  width: 300px;
+  height: 35px;
+  opacity:.8;
+}
+
+::placeholder{
+  color:black;
+  opacity:.6;
+}
