@@ -78,14 +78,12 @@
                         <a href="/register" class="btn_1 d-sm-block">Sign Up</a>
                       </li>
                       <% } else { %>
-                      <div style="color: white">
                         <li class="nav-item nav-links login">
-                          <a href="/users/<%=currentUser._id%>" class="btn_1 d-sm-block">Hi!, <%= currentUser.username %></a>
+                          <a href="/users/<%=currentUser._id%>" class="btn_1 d-sm-block"><div class="overflow-hidden login2"> Hi!,<%= currentUser.username %></div></a>
                         </li>
                         <li class="nav-item nav-links login signup">
-                          <a href="/logout" class="btn_1 d-sm-block">Logout</a>
+                          <a href="/logout" class="btn_1 d-sm-block logout">Logout</a>
                         </li>
-                      </div>
                       <% } %>
                     
                   </ul>

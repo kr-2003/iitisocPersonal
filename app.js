@@ -117,7 +117,11 @@ app.get(
 );
 
 app.get("/connect4/:room([A-Za-z0-9]{6})", function (req, res) {
-  res.render("connect4.ejs");
+  if (req.user !== undefined) res.render("connect4.ejs");
+  else {
+    req.flash("error", "Need to login/signup first!!");
+    res.redirect(`/login`);
+  }
 });
 
 function generateHash(length) {
