@@ -161,7 +161,8 @@ $(function () {
   }
 
   function reset_board() {
-    $(".btn").removeClass("yellow red winner_coin");
+    $(".line-p1").removeClass("yellow red");
+    $(".box").removeClass("yellowBox redBox");
     yc.removeClass("yellow red");
     oc.removeClass("yellow red");
     yc.removeClass("show");
