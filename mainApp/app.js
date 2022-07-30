@@ -23,6 +23,7 @@ const server = express()
 const io = new Server(server);
 import ttt_game_logic from "./gamelogics/ttt_game_logic.js";
 import c4_game_logic from "./gamelogics/c4_game_logic.js";
+import dab_game_logic from "./gamelogics/dab_game_logic.js";
 
 mongoose
   .connect("mongodb://localhost:27017/onlineGames")
@@ -117,7 +118,34 @@ app.get(
 );
 
 app.get("/connect4/:room([A-Za-z0-9]{6})", function (req, res) {
-  res.render("connect4.ejs");
+  if (req.user !== undefined) res.render("connect4.ejs");
+  else {
+    req.flash("error", "Need to login/signup first!!");
+    res.redirect(`/login`);
+  }
+});
+
+app.get(
+  "/dotsAndBoxes",
+  catchAsync(async (req, res) => {
+    if (req.user !== undefined) {
+      res.writeHead(302, {
+        Location: "/dotsAndBoxes/" + generateHash(6),
+      });
+      res.end();
+    } else {
+      req.flash("error", "Need to login/signup first!!");
+      res.redirect(`/login`);
+    }
+  })
+);
+
+app.get("/dotsAndBoxes/:room([A-Za-z0-9]{6})", function (req, res) {
+  if (req.user !== undefined) res.render("dotsAndBoxes.ejs");
+  else {
+    req.flash("error", "Need to login/signup first!!");
+    res.redirect(`/login`);
+  }
 });
 
 function generateHash(length) {
@@ -352,6 +380,204 @@ io.sockets.on("connection", function (socket) {
         delete c4_game_logic.games[socket.room];
         io.to(socket.room).emit("stop");
         // socket.send("stop");
+        console.log("room closed: " + socket.room);
+      } else {
+        console.log("disconnect called but nothing happend");
+      }
+      // implement remove room
+    });
+  });
+
+  socket.on("joinDotsAndBoxes", function (data) {
+    if (data.room in dab_game_logic.games) {
+      var game = dab_game_logic.games[data.room];
+      if (typeof game.player2 != "undefined") {
+        return;
+      }
+      console.log("player 2 logged on");
+      socket.join(data.room);
+      rooms.push(data.room);
+      socket.room = data.room;
+      socket.pid = 2;
+      socket.hash = generateHash(8);
+      game.player2 = socket;
+      game.player2Username = currentUser.username;
+      socket.opponent = game.player1;
+      game.player1.opponent = socket;
+      socket.emit("assign", { pid: socket.pid, hash: socket.hash });
+      game.turn = 1;
+      socket.broadcast.to(data.room).emit("start");
+    } else {
+      console.log("player 1 is here");
+      if (rooms.indexOf(data.room) <= 0) socket.join(data.room);
+      socket.room = data.room;
+      socket.pid = 1;
+      socket.hash = generateHash(8);
+      dab_game_logic.games[data.room] = {
+        player1: socket,
+        player1Username: currentUser.username,
+        moves: 0,
+        boxesColor: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        boxes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        lines: [
+          ["0"],
+          [1],
+          [2],
+          [3],
+          [4],
+          [1],
+          [1, 2],
+          [2, 3],
+          [3, 4],
+          [4],
+          [1, 5],
+          [2, 6],
+          [3, 7],
+          [4, 8],
+          [5],
+          [5, 6],
+          [6, 7],
+          [7, 8],
+          [8],
+          [5, 9],
+          [6, 10],
+          [7, 11],
+          [8, 12],
+          [9],
+          [9, 10],
+          [10, 11],
+          [11, 12],
+          [12],
+          [9],
+          [10],
+          [11],
+          [12],
+        ],
+        selectedLines: [],
+        linesColor: [
+          "0",
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+        ],
+      };
+      rooms.push(data.room);
+      socket.emit("assign", { pid: socket.pid, hash: socket.hash });
+    }
+
+    socket.on("makeMove", function (data) {
+      var game = dab_game_logic.games[socket.room];
+      if ((data.hash = socket.hash && game.turn == socket.pid)) {
+        var move_made = dab_game_logic.make_move(
+          socket.room,
+          data.lineId,
+          socket.pid
+        );
+        console.log(move_made);
+        if (move_made) {
+          game.moves = parseInt(game.moves) + 1;
+          socket.broadcast.to(socket.room).emit("move_made", {
+            pid: socket.pid,
+            lineId: data.lineId,
+            boxesColor: game.boxesColor,
+          });
+          game.turn = socket.opponent.pid;
+          // game_logic.checkBoxes(game.boxes, game.selectedLines, game.lines);
+          (game.selectedLines = []), console.log(game.boxes);
+          dab_game_logic.checkBoxesColor(
+            game.boxes,
+            game.boxesColor,
+            socket.pid
+          );
+          io.to(socket.room).emit("boxColor", { boxesColor: game.boxesColor });
+          console.log(game.boxesColor);
+
+          if (game.moves >= 31) {
+            let winner = dab_game_logic.check_for_win(
+              game.boxesColor,
+              socket.pid
+            );
+            if (winner === "draw") {
+              io.to(socket.room).emit("draw");
+              history(
+                "draw",
+                "Dots and Boxes",
+                game.player1Username,
+                game.player2Username
+              );
+            } else {
+              io.to(socket.room).emit("winner", { winner: winner });
+              if (winner === 1) {
+                history(
+                  "won",
+                  "Dots and Boxes",
+                  game.player1Username,
+                  game.player2Username
+                );
+              } else {
+                history(
+                  "won",
+                  "Dots and Boxes",
+                  game.player2Username,
+                  game.player1Username
+                );
+              }
+            }
+          }
+          // var winner = game_logic.check_for_win(game.board);
+          // console.log(winner);
+          // console.log(game.boxes);
+          // if (winner) {
+          //   io.to(socket.room).emit("winner", { winner: winner });
+          //   // io.to(socket.room).emit("stop");
+
+          //   // socket.send('winner', {winner: winner});
+          // }
+          // if (game.moves >= 9) {
+          //   io.to(socket.room).emit("draw");
+          //   // socket.send('draw');
+          // }
+        }
+      }
+    });
+
+    // socket.on("my_move", function (data) {
+    //   socket.broadcast.to(socket.room).emit("opponent_move", { lineId });
+    // });
+
+    socket.on("disconnect", function () {
+      if (socket.room in dab_game_logic.games) {
+        delete dab_game_logic.games[socket.room];
+        io.to(socket.room).emit("stop");
+        // socket.send('stop');
         console.log("room closed: " + socket.room);
       } else {
         console.log("disconnect called but nothing happend");
