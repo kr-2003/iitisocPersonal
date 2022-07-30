@@ -24,6 +24,8 @@ const io = new Server(server);
 import ttt_game_logic from "./gamelogics/ttt_game_logic.js";
 import c4_game_logic from "./gamelogics/c4_game_logic.js";
 import dab_game_logic from "./gamelogics/dab_game_logic.js";
+let gameMap = {};
+let userMap = undefined;
 
 mongoose
   .connect("mongodb://localhost:27017/onlineGames")
@@ -148,6 +150,13 @@ app.get("/dotsAndBoxes/:room([A-Za-z0-9]{6})", function (req, res) {
   }
 });
 
+app.get(
+  "/codenames",
+  catchAsync(async (req, res) => {
+    res.render("codenames.ejs");
+  })
+);
+
 function generateHash(length) {
   var haystack =
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
@@ -159,6 +168,8 @@ function generateHash(length) {
 }
 
 var rooms = [];
+
+let Rooms = {};
 
 io.sockets.on("connection", function (socket) {
   socket.on("joinTicTacToe", function (data) {
@@ -584,6 +595,100 @@ io.sockets.on("connection", function (socket) {
       }
       // implement remove room
     });
+  });
+
+  socket.on("joinRoom", ({ user, id, pass }) => {
+    console.log(`User ${user} wants to join room ${id} with password ${pass}`);
+    let roomToJoin = Rooms[id];
+    if (user === "" || id === "") {
+      socket.emit("error-message", "Please enter a username and room ID.");
+    } else if (roomToJoin === undefined) {
+      socket.emit("error-message", "Room not found.");
+    } else if (roomToJoin.pass !== pass) {
+      socket.emit("error-message", "Password incorrect.");
+    } else if (
+      roomToJoin.sockets.find((userName) => user == userName) !== undefined
+    ) {
+      socket.emit("error-message", "Username taken.");
+    } else {
+      socket.join(id);
+      socket.to(id).emit("message", "A user has joined the server.");
+      console.log(id);
+      console.log(`User ${user} has joined room ${id} with password ${pass}`);
+      roomToJoin.sockets.push(user);
+      console.log(roomToJoin.sockets);
+      console.log(roomToJoin);
+      console.log("gameMap: ", gameMap[id]);
+      socket.emit("joinGame", id, gameMap[id]);
+      socket.emit("updateUsers", Rooms[id].sockets);
+      socket.to(id).emit("updateUsers", Rooms[id].sockets);
+      socket.emit("createUserMap", socket.id, user);
+    }
+  });
+
+  socket.on("createRoom", ({ user, id, pass }) => {
+    if (user === "" || id === "") {
+      socket.emit("error-message", "You have left something empty.");
+    } else if (rooms[id] !== undefined) {
+      socket.emit("error-message", "This room already exists.");
+    } else {
+      let newRoom = {
+        id,
+        pass,
+        sockets: [],
+      };
+      Rooms[newRoom.id] = newRoom;
+      console.log(`Client ${user} wants to create ${id} with password ${pass}`);
+      socket.join(id);
+      newRoom.sockets.push(user);
+      socket.emit("putInGame", id);
+      socket.emit("updateUsers", Rooms[id].sockets);
+      socket.emit("createUserMap", socket.id, user);
+    }
+  });
+
+  socket.on("game", (currentGame, roomID) => {
+    gameMap[roomID] = currentGame;
+    //socket.emit('addData', currentGame)
+    socket.broadcast.to(roomID).emit("addData", currentGame);
+  });
+
+  socket.on("gamePieceClick", (gamePieceID, gameRoom, userID) => {
+    socket.emit("clickGamePiece", gamePieceID, userID);
+    socket.to(gameRoom).emit("clickGamePiece", gamePieceID, userID);
+  });
+
+  socket.on("userMap", (roomID, userIDs) => {
+    console.log("USERID: ", userIDs);
+    console.log("ROOMID: ", roomID);
+    if (userMap !== undefined) {
+      let newUserMap = { ...userMap, ...userIDs };
+      userMap = newUserMap;
+    } else {
+      userMap = userIDs;
+    }
+    console.log("userMap: ", userMap);
+    socket.emit("updateUserMap", userMap);
+    socket.to(roomID).emit("updateUserMap", userMap);
+  });
+
+  socket.on("userJoinTeam", (team, userID, roomID) => {
+    socket.emit("userJoinTeam", team, userID);
+    socket.to(roomID).emit("userJoinTeam", team, userID);
+  });
+
+  socket.on("userChangeRole", (user, role, roomID) => {
+    console.log(user, role, roomID);
+    socket.emit("userRoleChange", user, role);
+    socket.to(roomID).emit("userRoleChange", user, role);
+  });
+
+  socket.on("endTurn", (roomID) => {
+    socket.to(roomID).emit("endTurn");
+  });
+
+  socket.on("new-game", function () {
+    socket.emit("new-game");
   });
 });
 
